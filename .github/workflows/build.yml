@@ -1,0 +1,51 @@
+name: Build 
+
+on:
+  push:
+  workflow_dispatch: 
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: my-project-linux
+          - os: windows-latest
+            artifact_name: my-project-windows.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup xmake
+        uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+
+      - name: Configure and Build
+        run: |
+          xmake config -m release -y
+          xmake
+
+      - name: Package Artifact
+        if: runner.os == 'Linux'
+        run: |
+          cp build/linux/x86_64/release/c-extract ./${{ matrix.artifact_name }}
+
+      - name: Package Artifact (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          copy build\windows\x64\release\c-extract.exe .\.${{ matrix.artifact_name }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-binaries
+          path: ${{ matrix.artifact_name }}
