@@ -70,9 +70,7 @@ void print_zip_error(int ze, const char *action, char *mz_name) {
 }
 int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
             const char *filename, path_cache_map **created_dirs, int *chunk_zip_error, char *chunk_zip_name, char *read_buffer) {
-  static char out_path[PATH_MAX];
-  snprintf(out_path, sizeof(out_path), "%s%c%s", subdir, G_DIR_SEPARATOR,
-           filename);
+  char *out_path = g_build_filename(subdir, filename, NULL);
 
   cJSON *flags = cJSON_GetObjectItemCaseSensitive(file_object, "flags");
   if (!cJSON_IsNumber(flags)) {
@@ -80,6 +78,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
   }
   if (flags->valueint & 64) { // it's a folder
     g_mkdir_with_parents(out_path, 0755);
+    g_free(out_path);
     return 0;
   }
 
@@ -93,7 +92,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
   FILE *fp = g_fopen(out_path, "wb");
   if (!fp) {
     g_printerr("Failed to open %s\n", out_path);
-
+    g_free(out_path);
     return -2;
   }
 
@@ -106,7 +105,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
   if (!cJSON_IsArray(chunks)) {
     g_printerr("\nChunks in item %s is not an array\n", filename);
     fclose(fp);
-
+    g_free(out_path);
     return -3;
   }
   cJSON *chunk_item = NULL;
@@ -114,7 +113,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
     if (!cJSON_IsString(chunk_item)) {
       g_printerr("\n%s contains non-string chunk\n", filename);
       fclose(fp);
-
+      g_free(out_path);
       return -4;
     }
     const char *chunk = chunk_item->valuestring;
@@ -130,7 +129,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
     if (chunk_file == NULL) {
       print_zip_error(*chunk_zip_error, "open chunk in", chunk_zip_name);
       fclose(fp);
-
+      g_free(out_path);
       return -5;
     }
     int read = 0;
@@ -138,6 +137,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
       read = zip_fread(chunk_file, read_buffer, BUFFER_SIZE);
       if (read < 0) {
         print_zip_error(*chunk_zip_error, "read chunk in", chunk_zip_name);
+        g_free(out_path);
         return -6;
       }
       int wrote = fwrite(read_buffer, sizeof(char), read, fp);
@@ -147,7 +147,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
                    read, wrote);
         fflush(fp);
         fclose(fp);
-
+        g_free(out_path);
         return -7;
       }
     } while (read == BUFFER_SIZE);
@@ -155,6 +155,7 @@ int extract(cJSON *file_object, zip_t *zipf, const char *subdir,
 
   fflush(fp);
   fclose(fp);
+  g_free(out_path);
   return 0;
 }
 
