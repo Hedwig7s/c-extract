@@ -12,9 +12,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            artifact_name: my-project-linux
+            artifact_name: c-extract
           - os: windows-latest
-            artifact_name: my-project-windows.exe
+            artifact_name: c-extract.exe
 
     runs-on: ${{ matrix.os }}
 
