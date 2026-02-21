@@ -1,5 +1,4 @@
 // BEHOLD my SLOP (extract.c is hand-written though)
-
 /*
  * extract_version.c
  *
@@ -18,11 +17,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>  /* QueryPerformanceCounter/Frequency */
+#else
+#  include <time.h>     /* clock_gettime, CLOCK_MONOTONIC */
+#endif
 
 #include <glib.h>
 #include <glib/gstdio.h>
 
-#include <extract.h>
+#include "extract.h"
 
 /* --------------------------------------------------------------------------
  * Types
@@ -362,8 +367,14 @@ int main(void) {
         printf("]\n");
 
         /* ---- Extract all depots ---- */
+#ifdef _WIN32
+        LARGE_INTEGER qpf, qpc_start, qpc_end;
+        QueryPerformanceFrequency(&qpf);
+        QueryPerformanceCounter(&qpc_start);
+#else
         struct timespec ts_start, ts_end;
         clock_gettime(CLOCK_MONOTONIC, &ts_start);
+#endif
 
         int ret = 0;
         for (guint i = 0; i < ve->entries->len; i++) {
@@ -376,9 +387,15 @@ int main(void) {
             }
         }
 
+#ifdef _WIN32
+        QueryPerformanceCounter(&qpc_end);
+        double elapsed = (double)(qpc_end.QuadPart - qpc_start.QuadPart)
+                       / (double)qpf.QuadPart;
+#else
         clock_gettime(CLOCK_MONOTONIC, &ts_end);
-        double elapsed = (ts_end.tv_sec - ts_start.tv_sec)
+        double elapsed = (ts_end.tv_sec  - ts_start.tv_sec)
                        + (ts_end.tv_nsec - ts_start.tv_nsec) / 1e9;
+#endif
         printf("%.6f\n", elapsed);
 
         /* ---- Write steam_appid.txt ---- */
