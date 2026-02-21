@@ -12,9 +12,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            artifact_name: c-extract
           - os: windows-latest
-            artifact_name: c-extract.exe
 
     runs-on: ${{ matrix.os }}
 
@@ -34,18 +32,14 @@ jobs:
           xmake config -m release -y
           xmake
 
-      - name: Package Artifact
-        if: runner.os == 'Linux'
-        run: |
-          cp build/linux/x86_64/release/c-extract ./${{ matrix.artifact_name }}
-
-      - name: Package Artifact (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          copy build\windows\x64\release\c-extract.exe .\${{ matrix.artifact_name }}
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-binaries
-          path: ${{ matrix.artifact_name }}
+          path: build/linux/x86_64/release/*
+
+      - name: Upload Build Artifacts (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-binaries
+          path: build\windows\x64\release\*
