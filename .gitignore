@@ -1,0 +1,7 @@
+compile_commands.json
+manifests_*.zip
+chunks_*.zip
+build
+.xmake
+.cache
+src/.objs/*
