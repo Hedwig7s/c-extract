@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 add_requires("libzip", "cjson", "glib")
 
-target("main")
+target("c-extract")
 do
     set_kind("binary")
     add_files("src/*.c")
